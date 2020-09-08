@@ -135,7 +135,14 @@
 								<ColumnDefinition Width="Auto"/>
 							</Grid.ColumnDefinitions>
 							<TextBox Text="{Binding Path=NewFileFilter, UpdateSourceTrigger=PropertyChanged}"/>
-							<Button Grid.Column="1" x:Name="AddNewFileFilterButton">+</Button>
+							<Button
+								Grid.Column="1"
+								x:Name="AddNewFileFilterButton"
+								Background="{StaticResource base-color-analog-R}"
+								Foreground="White"
+							>
+								+
+							</Button>
 						</Grid>
 					</StackPanel>
 				</Border>
@@ -216,7 +223,7 @@
 				>
 					<FlowDocument>
 						<Paragraph>
-							<Run Text="{Binding Path=Code.UnchangedCode}"/>
+							<Run Text="{Binding Path=SelectedCodeFile.UnchangedCode}"/>
 						</Paragraph>
 					</FlowDocument>
 				</RichTextBox>
@@ -230,7 +237,7 @@
 				>
 					<FlowDocument>
 						<Paragraph>
-							<Run Text="{Binding Path=Code.CleanedCode}"/>
+							<Run Text="{Binding Path=SelectedCodeFile.CleanedCode}"/>
 						</Paragraph>
 					</FlowDocument>
 				</RichTextBox>

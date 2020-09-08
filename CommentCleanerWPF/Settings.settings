@@ -1,0 +1,15 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="CommentCleanerWPF" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="IgnoredSubFiles" Type="System.String" Scope="User">
+      <Value Profile="(Default)">.g,.i,.designer,AssemblyAttributes,AssemblyInfo,Designer,.NETFramework</Value>
+    </Setting>
+    <Setting Name="IgnoredSubDelimiter" Type="System.String" Scope="User">
+      <Value Profile="(Default)">,</Value>
+    </Setting>
+    <Setting Name="FileTypes" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Name=C#,Extension=.cs~Name=XAML,Extension=.xaml~Name=All,Extension=null</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

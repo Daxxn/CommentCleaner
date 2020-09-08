@@ -1,0 +1,15 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="CommentCleanerWPF" GeneratedClassName="RegexSettings">
+  <Profiles />
+  <Settings>
+    <Setting Name="CSFileBasicExp" Type="System.String" Scope="User">
+      <Value Profile="(Default)">[\t\s]+(//(?![!/])).*?$~Multiline~.cs</Value>
+    </Setting>
+    <Setting Name="CSFileMultiExp" Type="System.String" Scope="User">
+      <Value Profile="(Default)">[\t\s]*/\*[^!].*?\*/~Singleline~.cs</Value>
+    </Setting>
+    <Setting Name="XAMLFileMultiExp" Type="System.String" Scope="User">
+      <Value Profile="(Default)">[\t\s]*&lt;!--[^#].*--&gt;~Multiline~.xaml</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

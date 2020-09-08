@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -8,29 +9,22 @@ using System.Threading.Tasks;
 
 namespace CommentCleanerWPF.Models.FileStructures
 {
-    public class FileModel : DirectoryModel
+    public class FileModel
     {
         #region - Fields & Properties
-        public static Dictionary<string, string> LineTerminators = new Dictionary<string, string>
-        {
-            { "\\r\\n", @"\r\n" },
-            { "\\r", @"\r" },
-            { "\\n", @"\n" }
-        };
-
+        private static FileModel _instance;
         public static Regex BasicCommentRegexCS { get; set; } = new Regex(@"[\t\s]+(//(?![!/])).*?$", RegexOptions.Multiline);
         public static Regex MultilineCommentRegexCS { get; set; } = new Regex(@"[\t\s]*/\*[^!].*?\*/", RegexOptions.Singleline);
         public static Regex MultilineCommentXAML { get; set; } = new Regex(@"[\t\s]*<!--[^#].*-->", RegexOptions.Multiline);
 
+        public static Dictionary<string, Regex> CommentRegex { get; set; }
         public string Name { get; set; }
         public string Extension { get; set; }
-        public string BasicComment { get; set; }
-        public string StartComment { get; set; }
-        public string EndComment { get; set; }
+        public bool IsAll { get; set; } = false;
         #endregion
 
         #region - Constructors
-        public FileModel( ) { }
+        private FileModel( ) { }
         #endregion
 
         #region - Methods
@@ -49,6 +43,7 @@ namespace CommentCleanerWPF.Models.FileStructures
                 return ext == ".cs" || ext == ".xaml";
             }));
             List<string> filteredFiles = CustomFilter(filters, allFiles);
+
             return output;
         }
 
@@ -68,12 +63,17 @@ namespace CommentCleanerWPF.Models.FileStructures
             List<string> newList = new List<string>();
             foreach ( var file in allFiles )
             {
+                bool pass = true;
                 foreach ( var filter in filters )
                 {
-                    if ( !file.Contains(filter) )
+                    if ( file.Contains(filter) )
                     {
-                        newList.Add(file);
+                        pass = false;
                     }
+                }
+                if ( pass )
+                {
+                    newList.Add(file);
                 }
             }
             return newList;
@@ -85,28 +85,28 @@ namespace CommentCleanerWPF.Models.FileStructures
         /// <param name="file"></param>
         /// <param name="lineTerm"></param>
         /// <returns></returns>
-        public CodeFile RunCleaner( StreamReader file, string lineTerm )
-        {
-            CodeFile output = new CodeFile();
-            string completeFile = file.ReadToEnd();
-            StringBuilder allLines = new StringBuilder();
-            string[] lines = completeFile.Split(new string[] { LineTerminators[lineTerm] }, StringSplitOptions.RemoveEmptyEntries);
-            foreach ( var line in lines )
-            {
-                if ( line.StartsWith("//!") )
-                {
-                    continue;
-                }
-                if ( !line.StartsWith("//") )
-                {
-                    allLines.Append(line);
-                }
-            }
-            output.UnchangedCode = completeFile;
-            output.CleanedCode = allLines.ToString();
+        //public CodeFile RunCleaner( StreamReader file, string lineTerm )
+        //{
+        //    CodeFile output = new CodeFile();
+        //    string completeFile = file.ReadToEnd();
+        //    StringBuilder allLines = new StringBuilder();
+        //    string[] lines = completeFile.Split(new string[] { LineTerminators[lineTerm] }, StringSplitOptions.RemoveEmptyEntries);
+        //    foreach ( var line in lines )
+        //    {
+        //        if ( line.StartsWith("//!") )
+        //        {
+        //            continue;
+        //        }
+        //        if ( !line.StartsWith("//") )
+        //        {
+        //            allLines.Append(line);
+        //        }
+        //    }
+        //    output.UnchangedCode = completeFile;
+        //    output.CleanedCode = allLines.ToString();
 
-            return output;
-        }
+        //    return output;
+        //}
 
         /// <summary>
         /// VERY OLD - Doesnt work, will never work, Async
@@ -114,33 +114,33 @@ namespace CommentCleanerWPF.Models.FileStructures
         /// <param name="file"></param>
         /// <param name="lineTerm"></param>
         /// <returns></returns>
-        public async Task<CodeFile> RunCleanerAsync( StreamReader file, string lineTerm )
-        {
-            CodeFile output = new CodeFile();
-            List<string> lines = await ReadLinesAsync(file);
-            StringBuilder changedOutput = new StringBuilder();
-            StringBuilder unchangedOutput = new StringBuilder();
-            await Task.Run(( ) =>
-            {
-                foreach ( var line in lines )
-                {
-                    if ( !line.Contains("//") || line.Contains("//!") )
-                    {
-                        changedOutput.Append(line);
-                        changedOutput.Append("\n");
-                    }
-                    unchangedOutput.Append(line);
-                    unchangedOutput.Append("\n");
-                }
+        //public async Task<CodeFile> RunCleanerAsync( StreamReader file, string lineTerm )
+        //{
+        //    CodeFile output = new CodeFile();
+        //    List<string> lines = await ReadLinesAsync(file);
+        //    StringBuilder changedOutput = new StringBuilder();
+        //    StringBuilder unchangedOutput = new StringBuilder();
+        //    await Task.Run(( ) =>
+        //    {
+        //        foreach ( var line in lines )
+        //        {
+        //            if ( !line.Contains("//") || line.Contains("//!") )
+        //            {
+        //                changedOutput.Append(line);
+        //                changedOutput.Append("\n");
+        //            }
+        //            unchangedOutput.Append(line);
+        //            unchangedOutput.Append("\n");
+        //        }
 
-                output.UnchangedCode = unchangedOutput.ToString();
-                output.CleanedCode = changedOutput.ToString();
+        //        output.UnchangedCode = unchangedOutput.ToString();
+        //        output.CleanedCode = changedOutput.ToString();
 
-                CleanMultilineComments(changedOutput.ToString());
-            });
+        //        CleanMultilineComments(changedOutput.ToString());
+        //    });
 
-            return output;
-        }
+        //    return output;
+        //}
 
         public CodeFile RunCleanerRegex( StreamReader file )
         {
@@ -189,42 +189,42 @@ namespace CommentCleanerWPF.Models.FileStructures
         /// </summary>
         /// <param name="lines"></param>
         /// <returns></returns>
-        private string CleanMultilineComments( string lines )
-        {
-            StringBuilder builder = new StringBuilder();
-            string[] output = lines.Split(new string[] { StartComment, EndComment }, StringSplitOptions.RemoveEmptyEntries);
-            if ( output.Length == 1 )
-            {
-                return lines;
-            }
-            else if ( output.Length > 1 && output.Length < 3 )
-            {
-                // Not sure what to do here yet.
-                return lines;
-            }
-            if ( output.Length == 3 )
-            {
-                builder.Append(output[ 0 ]);
-                builder.Append(output[ 2 ]);
-                return builder.ToString();
-            }
-            else if ( output.Length > 3 )
-            {
-                var newOutput = CleanEmptyStrings(output);
-                for ( int i = 0; i < newOutput.Length; i++ )
-                {
-                    if ( i % 2 == 0 )
-                    {
-                        builder.Append(newOutput[ i ]);
-                    }
-                }
-                return builder.ToString();
-            } 
-            else
-            {
-                throw new Exception("Unknown Multiline Comments Parse Error");
-            }
-        }
+        //private string CleanMultilineComments( string lines )
+        //{
+        //    StringBuilder builder = new StringBuilder();
+        //    string[] output = lines.Split(new string[] { StartComment, EndComment }, StringSplitOptions.RemoveEmptyEntries);
+        //    if ( output.Length == 1 )
+        //    {
+        //        return lines;
+        //    }
+        //    else if ( output.Length > 1 && output.Length < 3 )
+        //    {
+        //        // Not sure what to do here yet.
+        //        return lines;
+        //    }
+        //    if ( output.Length == 3 )
+        //    {
+        //        builder.Append(output[ 0 ]);
+        //        builder.Append(output[ 2 ]);
+        //        return builder.ToString();
+        //    }
+        //    else if ( output.Length > 3 )
+        //    {
+        //        var newOutput = CleanEmptyStrings(output);
+        //        for ( int i = 0; i < newOutput.Length; i++ )
+        //        {
+        //            if ( i % 2 == 0 )
+        //            {
+        //                builder.Append(newOutput[ i ]);
+        //            }
+        //        }
+        //        return builder.ToString();
+        //    } 
+        //    else
+        //    {
+        //        throw new Exception("Unknown Multiline Comments Parse Error");
+        //    }
+        //}
 
         /// <summary>
         /// OLD - Removes empty lines from the file. Still might be necessary.
@@ -244,10 +244,46 @@ namespace CommentCleanerWPF.Models.FileStructures
             }
             return output.ToArray();
         }
+
+        public static void OnStartup( )
+        {
+            CommentRegex = new Dictionary<string, Regex>();
+            var settingBase = RegexSettings.Synchronized(RegexSettings.Default);
+            var props = settingBase.Properties.SyncRoot;
+            var propCollection = props as SettingsPropertyCollection;
+            foreach ( var prop in propCollection )
+            {
+                var p = prop as SettingsProperty;
+                CommentRegex.Add(p.Name, ParseRegex(( string )p.DefaultValue));
+            }
+        }
+
+        private static Regex ParseRegex( string settingValue )
+        {
+            string[] expressionSplt = settingValue.Split(new char[] { '~' }, StringSplitOptions.RemoveEmptyEntries);
+
+            RegexOptions options = RegexOptions.None;
+            if ( expressionSplt.Length == 2 )
+            {
+                options = ( RegexOptions )Enum.Parse(typeof(RegexOptions), expressionSplt[ 1 ]);
+            }
+
+            return new Regex(expressionSplt[0], options);
+        }
         #endregion
 
         #region - Full Properties
-
+        public static FileModel Instance
+        {
+            get
+            {
+                if ( _instance is null )
+                {
+                    _instance = new FileModel();
+                }
+                return _instance;
+            }
+        }
         #endregion
     }
 }

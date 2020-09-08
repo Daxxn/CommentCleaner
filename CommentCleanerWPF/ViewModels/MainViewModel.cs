@@ -16,21 +16,19 @@ namespace CommentCleanerWPF.ViewModels
     public class MainViewModel : ViewModelBase
     {
         #region - Fields & Properties
+        private FileModel _fileModel;
+
         private string _filePath = "";
         private string _dirPath;
 
-        private ObservableCollection<FilterItem> _fileFilters;
+        private ObservableCollection<FilterItem> _fileFilters = new ObservableCollection<FilterItem>();
         private string _newFileFilter;
 
-        private DirectoryInfo _rootDir;
+        //private ObservableCollection<FileModel> _fileTypes;
+        private ObservableCollection<FileType> _fileTypes;
+        //private FileModel _selectedFIleType;
+        private FileType _selectedFIleType;
 
-        private ObservableCollection<FileModel> _fileTypes;
-        private FileModel _selectedFIleType;
-
-        private string _selectedLineTerm;
-
-        private string _unchangedCode;
-        private string _cleanedCode;
         private CodeFile _selectedCodeFile;
         private ObservableCollection<CodeFile> _allCodeFiles;
         #endregion
@@ -38,33 +36,29 @@ namespace CommentCleanerWPF.ViewModels
         #region - Constructors
         public MainViewModel( )
         {
+            FileModel = FileModel.Instance;
             DirPath = @"C:\Users\Cody\source\repos\CommentTestApp\CommentTestApp";
-            RootDir = new DirectoryInfo(DirPath);
-            FileTypes = new ObservableCollection<FileModel>
-            {
-                new FileModel
-                {
-                    Name="CSharp",
-                    Extension=".cs",
-                    BasicComment="//",
-                    StartComment="/*",
-                    EndComment="*/"
-                },
-                new FileModel
-                {
-                    Name="XAML",
-                    Extension=".xaml",
-                    StartComment="<!--",
-                    EndComment="-->"
-                }
-            };
+            //FileTypes = new ObservableCollection<FileModel>
+            //{
+            //    new FileModel
+            //    {
+            //        Name="CSharp",
+            //        Extension=".cs",
+            //    },
+            //    new FileModel
+            //    {
+            //        Name="XAML",
+            //        Extension=".xaml",
+            //    },
+            //    new FileModel
+            //    {
+            //        Name="All",
+            //        Extension=null,
+            //        IsAll = true,
+            //    }
+            //};
+            FileTypes = new ObservableCollection<FileType>(FileType.Types);
             SelectedFileType = FileTypes[ 0 ];
-
-            FileFilters = new ObservableCollection<FilterItem>
-            {
-                new FilterItem(".g"),
-                new FilterItem(".designer")
-            };
         }
         #endregion
 
@@ -113,7 +107,8 @@ namespace CommentCleanerWPF.ViewModels
                 {
                     throw new Exception("No file selected.");
                 }
-                AllCodeFiles = new ObservableCollection<CodeFile>( SelectedFileType.RunCleaner(DirPath, FilterItem.ToStringArray(FileFilters)));
+                AllCodeFiles = new ObservableCollection<CodeFile>(FileModel.RunCleaner(DirPath, FilterItem.ToStringArray(FileFilters)));
+                //AllCodeFiles = new ObservableCollection<CodeFile>( SelectedFileType.RunCleaner(DirPath, FilterItem.ToStringArray(FileFilters)));
                 //using ( StreamReader reader = new StreamReader(FilePath) )
                 //{
                 //    //Code = await SelectedFileType.RunCleanerRegexAsync(reader);
@@ -143,11 +138,42 @@ namespace CommentCleanerWPF.ViewModels
 
         public void LoadedEvent( object sender, EventArgs e )
         {
-            
+            FileFilters = new ObservableCollection<FilterItem>(GetFileFilters(Settings.Default.IgnoredSubFiles, Settings.Default.IgnoredSubDelimiter));
+        }
+
+        private FilterItem[] GetFileFilters( string settingsValue, string delimiter )
+        {
+            try
+            {
+                List<FilterItem> output = new List<FilterItem>();
+                string[] names = settingsValue.Split(new string[] { delimiter }, StringSplitOptions.RemoveEmptyEntries);
+                foreach ( var name in names )
+                {
+                    if ( !String.IsNullOrWhiteSpace(name) )
+                    {
+                        output.Add(new FilterItem(name));
+                    }
+                }
+                return output.ToArray();
+            }
+            catch ( Exception e )
+            {
+                MessageBox.Show($"Unable to build filters: {e.Message}", "Error");
+                return new FilterItem[ 0 ];
+            }
         }
         #endregion
 
         #region - Full Properties
+        public FileModel FileModel
+        {
+            get { return _fileModel; }
+            set
+            {
+                _fileModel = value;
+            }
+        }
+
         public string FilePath
         {
             get { return _filePath; }
@@ -195,16 +221,6 @@ namespace CommentCleanerWPF.ViewModels
             get => Directory.Exists(DirPath);
         }
 
-        public DirectoryInfo RootDir
-        {
-            get { return _rootDir; }
-            set
-            {
-                _rootDir = value;
-                NotifyOfPropertyChange(nameof(RootDir));
-            }
-        }
-
         public string FileName
         {
             get
@@ -220,7 +236,8 @@ namespace CommentCleanerWPF.ViewModels
             }
         }
 
-        public ObservableCollection<FileModel> FileTypes
+        //public ObservableCollection<FileModel> FileTypes
+        public ObservableCollection<FileType> FileTypes
         {
             get { return _fileTypes; }
             set
@@ -230,41 +247,14 @@ namespace CommentCleanerWPF.ViewModels
             }
         }
 
-        public FileModel SelectedFileType
+        //public FileModel SelectedFileType
+        public FileType SelectedFileType
         {
             get { return _selectedFIleType; }
             set
             {
                 _selectedFIleType = value;
                 NotifyOfPropertyChange(nameof(SelectedFileType));
-            }
-        }
-
-        public string SelectedLineTerm
-        {
-            get { return _selectedLineTerm; }
-            set
-            {
-                _selectedLineTerm = value;
-                NotifyOfPropertyChange(nameof(SelectedLineTerm));
-            }
-        }
-        public string UnchangedCode
-        {
-            get { return _unchangedCode; }
-            set
-            {
-                _unchangedCode = value;
-                NotifyOfPropertyChange(nameof(UnchangedCode));
-            }
-        }
-        public string CleanedCode
-        {
-            get { return _cleanedCode; }
-            set
-            {
-                _cleanedCode = value;
-                NotifyOfPropertyChange(nameof(CleanedCode));
             }
         }
 

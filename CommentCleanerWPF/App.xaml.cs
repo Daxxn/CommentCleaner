@@ -1,4 +1,5 @@
-﻿using CommentCleanerWPF.ViewModels;
+﻿using CommentCleanerWPF.Models.FileStructures;
+using CommentCleanerWPF.ViewModels;
 
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,8 @@ namespace CommentCleanerWPF
     {
         protected override void OnStartup( StartupEventArgs e )
         {
+            FileModel.OnStartup();
+            FileType.OnStartup();
             var window = new MainWindow(new MainViewModel());
             window.Show();
         }
