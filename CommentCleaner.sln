@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30413.136
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommentCleanerWPF", "CommentCleanerWPF\CommentCleanerWPF.csproj", "{FE1CE58E-E2B4-4F12-886C-4B1DD8770157}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FE1CE58E-E2B4-4F12-886C-4B1DD8770157}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FE1CE58E-E2B4-4F12-886C-4B1DD8770157}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FE1CE58E-E2B4-4F12-886C-4B1DD8770157}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FE1CE58E-E2B4-4F12-886C-4B1DD8770157}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2AB505A6-8FB0-4116-AC1E-80E012DB2101}
+	EndGlobalSection
+EndGlobal
