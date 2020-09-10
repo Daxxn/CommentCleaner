@@ -22,7 +22,8 @@ namespace CommentCleanerWPF.ViewModels
         #region - Fields & Properties
         private FileModel _fileModel;
 
-        private string _filePath = "";
+        //private string _filePath = "";
+        private string[] _filePaths;
         private string _dirPath;
 
         private ObservableCollection<FilterItem> _fileFilters = new ObservableCollection<FilterItem>();
@@ -49,26 +50,64 @@ namespace CommentCleanerWPF.ViewModels
         #endregion
 
         #region - Methods
-        public void OpenFileEvent( object sender, EventArgs e )
+        public void SelectFilesEvent( object sender, EventArgs e )
         {
             OpenFileDialog dialog = new OpenFileDialog
             {
                 CheckFileExists = true,
-                Title = "Select File"
+                Title = "Select File",
+                Multiselect = true,
             };
 
             if ( dialog.ShowDialog() == true )
             {
-                FilePath = dialog.FileName;
+                FilePaths = dialog.FileNames;
+
+                if ( FilePaths.Length > 0 )
+                {
+                    AllCodeFiles = new ObservableCollection<CodeFile>(FileModel.OpenFiles(FilePaths));
+                }
             }
         }
 
-        public void OpenDirEvent( object sender, EventArgs e )
+        public void OpenDirectoryEvent( object sender, EventArgs e )
         {
-            OpenFileDialog dialog = new OpenFileDialog
+            try
             {
-                AddExtension = false,
-            };
+                (List<CodeFile> tempFiles, string[] filePaths) = FileModel.OpenFilesFromDir(
+                    DirPath,
+                    FilterItem.ToStringArray(FileFilters),
+                    SelectAll,
+                    true,
+                    SelectedFileType
+                );
+                AllCodeFiles = new ObservableCollection<CodeFile>(tempFiles);
+                //AllCodeFiles = new ObservableCollection<CodeFile>(
+                //    FileModel.OpenFilesFromDir(
+                //        DirPath,
+                //        FilterItem.ToStringArray(FileFilters),
+                //        SelectAll,
+                //        true,
+                //        SelectedFileType
+                //    )
+                //);
+            }
+            catch ( Exception exe )
+            {
+                MessageBox.Show(exe.Message);
+            }
+        }
+
+        public void SelectDirectoryEvent( object sender, EventArgs e )
+        {
+            try
+            {
+                MessageBox.Show("Cannot import FolderBrowserDialog box from WinForms. Need to build a custom folder browser.");
+            }
+            catch ( Exception exe )
+            {
+                MessageBox.Show(exe.Message);
+            }
         }
 
         public void AddNewFileFilterEvent( object sender, EventArgs e )
@@ -89,11 +128,37 @@ namespace CommentCleanerWPF.ViewModels
         {
             try
             {
-                if ( FilePath == "" && DirPath == "")
+                if ( FilePaths == null && DirPath == "")
                 {
                     throw new Exception("No file selected.");
                 }
-                AllCodeFiles = new ObservableCollection<CodeFile>(await FileModel.RunCleanerAsync(DirPath, FilterItem.ToStringArray(FileFilters), SelectAll, SelectedFileType));
+                AllCodeFiles = new ObservableCollection<CodeFile>(
+                    await FileModel.RunCleanerAsync(
+                        DirPath,
+                        FilterItem.ToStringArray(FileFilters),
+                        SelectAll,
+                        SelectedFileType
+                    )
+                );
+            }
+            catch ( Exception exe )
+            {
+                MessageBox.Show(exe.Message, "Error");
+            }
+        }
+
+        public async void RunCleanerEventAsyncTest( object sender, EventArgs e )
+        {
+            try
+            {
+                AllCodeFiles = new ObservableCollection<CodeFile>(
+                    await FileModel.RunCleanerAsync(
+                        DirPath,
+                        FilterItem.ToStringArray(FileFilters),
+                        SelectAll,
+                        SelectedFileType
+                    )
+                );
             }
             catch ( Exception exe )
             {
@@ -105,7 +170,7 @@ namespace CommentCleanerWPF.ViewModels
         {
             try
             {
-                using ( StreamWriter writer = new StreamWriter(FilePath) )
+                using ( StreamWriter writer = new StreamWriter(SelectedCodeFile.FullPath) )
                 {
                     await writer.WriteAsync(SelectedCodeFile.CleanedCode);
                     writer.Flush();
@@ -117,9 +182,6 @@ namespace CommentCleanerWPF.ViewModels
             }
         }
 
-        /// <summary>
-        /// Might not work as intended. Possible problem with Parallel Getting out of sync with the output List
-        /// </summary>
         public async void SaveAllFilesEventAsync( object sender, EventArgs e )
         {
             try
@@ -222,7 +284,12 @@ namespace CommentCleanerWPF.ViewModels
 
         public void LoadedEvent( object sender, EventArgs e )
         {
-            FileFilters = new ObservableCollection<FilterItem>(GetFileFilters(Settings.Default.IgnoredSubFiles, Settings.Default.IgnoredSubDelimiter));
+            FileFilters = new ObservableCollection<FilterItem>(
+                GetFileFilters(
+                    Settings.Default.IgnoredSubFiles,
+                    Settings.Default.IgnoredSubDelimiter
+                )
+            );
         }
 
         private FilterItem[] GetFileFilters( string settingsValue, string delimiter )
@@ -258,14 +325,13 @@ namespace CommentCleanerWPF.ViewModels
             }
         }
 
-        public string FilePath
+        public string[] FilePaths
         {
-            get { return _filePath; }
+            get { return _filePaths; }
             set
             {
-                _filePath = value;
-                NotifyOfPropertyChange(nameof(FilePath));
-                NotifyOfPropertyChange(nameof(FileName));
+                _filePaths = value;
+                NotifyOfPropertyChange(nameof(FilePaths));
             }
         }
 
@@ -305,20 +371,6 @@ namespace CommentCleanerWPF.ViewModels
             get => Directory.Exists(DirPath);
         }
 
-        public string FileName
-        {
-            get
-            {
-                try
-                {
-                    return Path.GetFileName(FilePath);
-                }
-                catch ( Exception )
-                {
-                    return "";
-                }
-            }
-        }
 
         public ObservableCollection<RegexModel> FileTypes
         {

@@ -7,23 +7,30 @@
         mc:Ignorable="d"
 		x:Name="MainRoot"
 		WindowState="Maximized"
+		Icon="{StaticResource CSIcon_50}"
         Title="Comment Cleaner" Height="850" Width="1000">
 	<Window.Resources>
 		<ResourceDictionary>
-			<SolidColorBrush x:Key="base-color" Color="#0045c9"/>
-			<SolidColorBrush x:Key="base-color-light" Color="#3277fb"/>
-			<SolidColorBrush x:Key="base-color-light-mono" Color="#5a8ae2"/>
-			<SolidColorBrush x:Key="base-color-bright" Color="#ebeeff"/>
-			<SolidColorBrush x:Key="base-color-comp" Color="#c95400"/>
-			<SolidColorBrush x:Key="base-color-comp-light" Color="#cfbaaa"/>
-			<SolidColorBrush x:Key="base-color-analog-L" Color="#00c983"/>
-			<SolidColorBrush x:Key="base-color-analog-L-light" Color="#b8d1ca"/>
-			<SolidColorBrush x:Key="base-color-analog-R" Color="#4300c9"/>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary>
+					<SolidColorBrush x:Key="base-color" Color="#0045c9"/>
+					<SolidColorBrush x:Key="base-color-light" Color="#3277fb"/>
+					<SolidColorBrush x:Key="base-color-light-mono" Color="#5a8ae2"/>
+					<SolidColorBrush x:Key="base-color-bright" Color="#ebeeff"/>
+					<SolidColorBrush x:Key="base-color-comp" Color="#c95400"/>
+					<SolidColorBrush x:Key="base-color-comp-2" Color="#cf7f3e"/>
+					<SolidColorBrush x:Key="base-color-comp-light" Color="#cfbaaa"/>
+					<SolidColorBrush x:Key="base-color-analog-L" Color="#00c983"/>
+					<SolidColorBrush x:Key="base-color-analog-L-light" Color="#b8d1ca"/>
+					<SolidColorBrush x:Key="base-color-analog-R" Color="#4300c9"/>
 
-			<Style TargetType="Button">
-				<Setter Property="Margin" Value="2"/>
-				<Setter Property="Padding" Value="2"/>
-			</Style>
+					<Style TargetType="Button">
+						<Setter Property="Margin" Value="2"/>
+						<Setter Property="Padding" Value="2"/>
+					</Style>
+				</ResourceDictionary>
+				<ResourceDictionary Source="Resources/IconDict.xaml"/>
+			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
 	</Window.Resources>
 	<Grid>
@@ -59,13 +66,14 @@
 						<Grid.ColumnDefinitions>
 							<ColumnDefinition Width="Auto"/>
 							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="Auto"/>
 						</Grid.ColumnDefinitions>
 						<Grid.RowDefinitions>
 							<RowDefinition Height="Auto"/>
 							<RowDefinition Height="Auto"/>
 						</Grid.RowDefinitions>
 
-						<TextBlock>Path</TextBlock>
+						<TextBlock Margin="0,0,2,0">Path</TextBlock>
 						<TextBox
 							x:Name="PathBox"
 							Text="{Binding Path=DirPath, UpdateSourceTrigger=PropertyChanged}"
@@ -84,12 +92,38 @@
 								</Style>
 							</TextBox.Style>
 						</TextBox>
+						<Button
+							x:Name="SelectDirButton"
+							Grid.Column="2"
+							FontSize="10"
+							MaxWidth="20"
+							Background="{StaticResource base-color-comp-light}"
+						>
+							Dir
+						</Button>
 					</Grid>
 				</Border>
 
+				<Button
+					x:Name="OpenDirectoryButton"
+					Grid.Row="1"
+					Background="{StaticResource base-color-comp}"
+					Foreground="White"
+				>
+					Open Folder
+				</Button>
+
+				<Button
+					x:Name="SelectFilesManuallyButton"
+					Grid.Row="2"
+					Background="{StaticResource base-color-comp-2}"
+				>
+					Select Files
+				</Button>
+
 				<ComboBox
 					Name="FileTypeCombo"
-					Grid.Row="1"
+					Grid.Row="3"
 					ItemsSource="{Binding Path=FileTypes}"
 					SelectedItem="{
 						Binding Path=SelectedFileType,
@@ -115,27 +149,10 @@
 
 				<CheckBox
 					IsChecked="{Binding Path=SelectAll, UpdateSourceTrigger=PropertyChanged}"
-					Grid.Row="2"
-				>
-					Select All
-				</CheckBox>
-
-				<Button
-					x:Name="OpenFileButton"
-					Grid.Row="3"
-					Background="{StaticResource base-color-analog-R}"
-					Foreground="White"
-				>
-					Select File
-				</Button>
-				<Button
-					x:Name="RunCleanerButton"
 					Grid.Row="4"
-					Background="{StaticResource base-color-comp}"
-					Foreground="White"
 				>
-					Run Cleaner
-				</Button>
+					Select All File Types
+				</CheckBox>
 
 				<Border Grid.Row="5">
 					<StackPanel>
@@ -196,17 +213,25 @@
 			CornerRadius="4"
 			Margin="1"
 		>
-			<ListView
-				MinWidth="80"
-				ItemsSource="{Binding Path=AllCodeFiles}"
-				SelectedItem="{Binding Path=SelectedCodeFile}"
-			>
-				<ListView.ItemTemplate>
-					<DataTemplate>
-						<TextBlock Text="{Binding Path=FileName}"/>
-					</DataTemplate>
-				</ListView.ItemTemplate>
-			</ListView>
+			<StackPanel Orientation="Vertical">
+				<TextBlock HorizontalAlignment="Center">
+					Open Files
+				</TextBlock>
+				<ListView
+					MinWidth="80"
+					ItemsSource="{Binding Path=AllCodeFiles}"
+					SelectedItem="{Binding Path=SelectedCodeFile}"
+				>
+					<ListView.ItemTemplate>
+						<DataTemplate>
+							<StackPanel Orientation="Horizontal">
+								<Image Width="25" Height="25" Source="{StaticResource FileIcon_25}"/>
+								<TextBlock Text="{Binding Path=FileName}"/>
+							</StackPanel>
+						</DataTemplate>
+					</ListView.ItemTemplate>
+				</ListView>
+			</StackPanel>
 		</Border>
 
 		<Border
@@ -218,17 +243,29 @@
 		>
 			<Grid>
 				<Grid.ColumnDefinitions>
-					<ColumnDefinition Width="*"/>
-					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="*" MinWidth="200"/>
+					<ColumnDefinition Width="*" MinWidth="200"/>
 				</Grid.ColumnDefinitions>
 				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="*"/>
 				</Grid.RowDefinitions>
 
-				<TextBlock
+				<Button
+					x:Name="RunCleanerButton"
 					Grid.Column="0"
 					Grid.Row="0"
+					Grid.ColumnSpan="2"
+					Background="{StaticResource base-color-analog-R}"
+					Foreground="White"
+				>
+					Run Cleaner
+				</Button>
+
+				<TextBlock
+					Grid.Column="0"
+					Grid.Row="1"
 					HorizontalAlignment="Center"
 					FontSize="14"
 				>
@@ -237,42 +274,72 @@
 
 				<TextBlock
 					Grid.Column="1"
-					Grid.Row="0"
+					Grid.Row="1"
 					HorizontalAlignment="Center"
 					FontSize="14"
 				>
 					Cleaned
 				</TextBlock>
 
-				<RichTextBox
-					x:Name="UnchangedCodeBox"
+				<Border
+					Grid.Row="2"
 					Grid.Column="0"
-					Grid.Row="1"
-					IsTabStop="False"
-					AcceptsReturn="False"
-					AcceptsTab="False"
-					IsEnabled="False"
+					BorderBrush="{StaticResource base-color-light}"
+					BorderThickness="2"
+					CornerRadius="2"
 				>
-					<FlowDocument>
-						<Paragraph>
-							<Run Text="{Binding Path=SelectedCodeFile.UnchangedCode}"/>
-						</Paragraph>
-					</FlowDocument>
-				</RichTextBox>
+					<ScrollViewer
+						HorizontalScrollBarVisibility="Auto"
+						VerticalScrollBarVisibility="Auto"
+					>
+						<RichTextBox
+							x:Name="UnchangedCodeBox"
+							IsTabStop="False"
+							AcceptsReturn="False"
+							AcceptsTab="False"
+							IsReadOnly="True"
+							BorderThickness="0"
+							MinWidth="500"
+							HorizontalScrollBarVisibility="Disabled"
+							VerticalScrollBarVisibility="Disabled"
+						>
+							<FlowDocument>
+								<Paragraph>
+									<Run Text="{Binding Path=SelectedCodeFile.UnchangedCode}"/>
+								</Paragraph>
+							</FlowDocument>
+						</RichTextBox>
+					</ScrollViewer>
+				</Border>
 
-				<RichTextBox
-					x:Name="CleanedCodeBox"
+				<Border
+					Grid.Row="2"
 					Grid.Column="1"
-					Grid.Row="1"
-					AcceptsReturn="True"
-					AcceptsTab="True"
+					BorderBrush="{StaticResource base-color-light}"
+					BorderThickness="2"
+					CornerRadius="2"
 				>
-					<FlowDocument>
-						<Paragraph>
-							<Run Text="{Binding Path=SelectedCodeFile.CleanedCode}"/>
-						</Paragraph>
-					</FlowDocument>
-				</RichTextBox>
+					<ScrollViewer
+						HorizontalScrollBarVisibility="Auto"
+						VerticalScrollBarVisibility="Auto"
+					>
+						<RichTextBox
+							x:Name="CleanedCodeBox"
+							AcceptsReturn="True"
+							AcceptsTab="True"
+							BorderThickness="0"
+							MinWidth="500"
+							HorizontalScrollBarVisibility="Disabled"
+							VerticalScrollBarVisibility="Disabled"
+						>
+							<FlowDocument>
+								<Paragraph>
+									<Run Text="{Binding Path=SelectedCodeFile.CleanedCode}"/>
+								</Paragraph>
+							</FlowDocument>
+						</RichTextBox>
+					</ScrollViewer>
+				</Border>
 			</Grid>
 		</Border>
     </Grid>

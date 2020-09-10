@@ -31,11 +31,23 @@ namespace CommentCleanerWPF
 
         public void InitializeEvents( MainViewModel vm )
         {
+            //! Window
             MainRoot.Loaded += vm.LoadedEvent;
-            OpenFileButton.Click += vm.OpenFileEvent;
+
+            //! File Management Buttons
+            SelectFilesManuallyButton.Click += vm.SelectFilesEvent;
+            SelectDirButton.Click += vm.SelectDirectoryEvent;
+
+            // Change to open files and NOT run the cleaner
+            OpenDirectoryButton.Click += vm.OpenDirectoryEvent;
+            // Then use this to run the file.
             RunCleanerButton.Click += vm.RunCleanerEventAsync;
+
+            //! Save Buttons
             SaveFileButton.Click += vm.SaveFileEventAsync;
             SaveAllFilesButton.Click += vm.SaveAllFilesEventAsync;
+
+            //! Filter Controls
             AddNewFileFilterButton.Click += vm.AddNewFileFilterEvent;
             FileFilterList.SelectionChanged += vm.DeleteFileFilterEvent;
         }

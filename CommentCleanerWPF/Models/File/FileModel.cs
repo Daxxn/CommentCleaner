@@ -16,14 +16,6 @@ namespace CommentCleanerWPF.Models.FileStructures
     {
         #region - Fields & Properties
         private static FileModel _instance;
-        public static Regex BasicCommentRegexCS { get; set; } = new Regex(@"[\t\s]+(//(?![!/])).*?$", RegexOptions.Multiline);
-        public static Regex MultilineCommentRegexCS { get; set; } = new Regex(@"[\t\s]*/\*[^!].*?\*/", RegexOptions.Singleline);
-        public static Regex MultilineCommentXAML { get; set; } = new Regex(@"[\t\s]*<!--[^#].*-->", RegexOptions.Multiline);
-
-        public static Dictionary<string, Regex> CommentRegex { get; set; }
-        public string Name { get; set; }
-        public string Extension { get; set; }
-        public bool IsAll { get; set; } = false;
         #endregion
 
         #region - Constructors
@@ -31,6 +23,37 @@ namespace CommentCleanerWPF.Models.FileStructures
         #endregion
 
         #region - Methods
+
+        #region Open File Methods
+        public List<CodeFile> OpenFiles( string[] paths )
+        {
+            List<CodeFile> output = new List<CodeFile>();
+            foreach ( var path in paths )
+            {
+                if ( File.Exists(path) )
+                {
+                    using ( StreamReader reader = new StreamReader(path) )
+                    {
+                        output.Add(new CodeFile
+                        {
+                            FileName = Path.GetFileName(path),
+                            FullPath = path,
+                            UnchangedCode = reader.ReadToEnd()
+                        });
+                    }
+                }
+            }
+            return output;
+        }
+
+        public (List<CodeFile>, string[]) OpenFilesFromDir( string dirPath, string[] filters, bool selectAll, bool deepSearch, RegexModel selectedRegex )
+        {
+            string[] allPaths = GetFiles(dirPath, filters, selectAll, selectedRegex);
+            return (OpenFiles(allPaths), allPaths);
+        }
+        #endregion
+
+        #region Cleaner Entry Methods
         public List<CodeFile> RunCleanerSync( string dirPath, string[] filters, bool selectAll, RegexModel selectedRegex )
         {
             string[] allFiles = GetFiles(dirPath, filters, selectAll, selectedRegex);
@@ -95,6 +118,30 @@ namespace CommentCleanerWPF.Models.FileStructures
             return results.ToList();
         }
 
+        public async Task RunCleanerAsync( List<CodeFile> codeFiles )
+        {
+            List<Task> tasks = new List<Task>();
+
+            foreach ( var file in codeFiles )
+            {
+                tasks.Add(Task.Run(( ) =>
+                {
+                    try
+                    {
+                        RunCleanerRegex(file);
+                    }
+                    catch ( Exception e )
+                    {
+                        file.Error = e;
+                    }
+                }));
+            }
+
+            await Task.WhenAll(tasks);
+        }
+        #endregion
+
+        #region File Filtering & Selection Methods
         public string[] GetFiles( string dirPath, string[] filters, bool selectAll, RegexModel selectedRegexModel )
         {
             if ( !Directory.Exists(dirPath) )
@@ -179,12 +226,14 @@ namespace CommentCleanerWPF.Models.FileStructures
             }
             return newList;
         }
+        #endregion
 
         /// <summary>
-        /// VERY Temporary. Need to rework the Regex model.
+        /// Matches comment strings in the file and removes them. May switch to a Split method for difference highlighting in the future.
         /// </summary>
-        /// <param name="data"></param>
-        /// <returns></returns>
+        /// <param name="data">The RAW file string.</param>
+        /// <param name="ext">The extension string used to match the Regex.</param>
+        /// <returns>Returns a string with all found comments removed.</returns>
         private string RunCleanerRegex( string data, string ext )
         {
             var regex = RegexModel.AllRegexModels.First(reg => reg.Extension == ext);
@@ -194,6 +243,16 @@ namespace CommentCleanerWPF.Models.FileStructures
                 output = r.Regex.Replace(output, "");
             }
             return output;
+        }
+
+        private void RunCleanerRegex( CodeFile file )
+        {
+            var regex = RegexModel.AllRegexModels.First(reg => reg.Extension == Path.GetExtension(file.FullPath));
+            string tempData = file.UnchangedCode;
+            foreach ( var reg in regex.RegexCollection )
+            {
+                file.CleanedCode = reg.Regex.Replace(tempData, String.Empty);
+            }
         }
         #endregion
 
