@@ -22,7 +22,6 @@ namespace CommentCleanerWPF.ViewModels
         #region - Fields & Properties
         private FileModel _fileModel;
 
-        //private string _filePath = "";
         private string[] _filePaths;
         private string _dirPath;
 
@@ -34,6 +33,7 @@ namespace CommentCleanerWPF.ViewModels
         private RegexModel _selectedFIleType;
 
         private bool _selectAll;
+        private bool _IsShallow;
 
         private CodeFile _selectedCodeFile;
         private ObservableCollection<CodeFile> _allCodeFiles;
@@ -78,19 +78,10 @@ namespace CommentCleanerWPF.ViewModels
                     DirPath,
                     FilterItem.ToStringArray(FileFilters),
                     SelectAll,
-                    true,
+                    IsShallow,
                     SelectedFileType
                 );
                 AllCodeFiles = new ObservableCollection<CodeFile>(tempFiles);
-                //AllCodeFiles = new ObservableCollection<CodeFile>(
-                //    FileModel.OpenFilesFromDir(
-                //        DirPath,
-                //        FilterItem.ToStringArray(FileFilters),
-                //        SelectAll,
-                //        true,
-                //        SelectedFileType
-                //    )
-                //);
             }
             catch ( Exception exe )
             {
@@ -151,14 +142,9 @@ namespace CommentCleanerWPF.ViewModels
         {
             try
             {
-                AllCodeFiles = new ObservableCollection<CodeFile>(
-                    await FileModel.RunCleanerAsync(
-                        DirPath,
-                        FilterItem.ToStringArray(FileFilters),
-                        SelectAll,
-                        SelectedFileType
-                    )
-                );
+                var tempSelectedId = SelectedCodeFile.Id;
+                await FileModel.RunCleanerAsync(AllCodeFiles.ToList());
+                SelectedCodeFile = AllCodeFiles.First(file => file.Id == tempSelectedId);
             }
             catch ( Exception exe )
             {
@@ -399,6 +385,16 @@ namespace CommentCleanerWPF.ViewModels
             {
                 _selectAll = value;
                 NotifyOfPropertyChange(nameof(SelectAll));
+            }
+        }
+
+        public bool IsShallow
+        {
+            get { return _IsShallow; }
+            set
+            {
+                _IsShallow = value;
+                NotifyOfPropertyChange(nameof(IsShallow));
             }
         }
 

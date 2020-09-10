@@ -32,13 +32,25 @@ namespace CommentCleanerWPF.Models.FileStructures
             {
                 if ( File.Exists(path) )
                 {
-                    using ( StreamReader reader = new StreamReader(path) )
+                    try
+                    {
+                        using ( StreamReader reader = new StreamReader(path) )
+                        {
+                                output.Add(new CodeFile
+                                {
+                                    FileName = Path.GetFileName(path),
+                                    FullPath = path,
+                                    UnchangedCode = reader.ReadToEnd()
+                                });
+                        }
+                    }
+                    catch ( Exception e )
                     {
                         output.Add(new CodeFile
                         {
                             FileName = Path.GetFileName(path),
                             FullPath = path,
-                            UnchangedCode = reader.ReadToEnd()
+                            Error = e
                         });
                     }
                 }
@@ -46,9 +58,9 @@ namespace CommentCleanerWPF.Models.FileStructures
             return output;
         }
 
-        public (List<CodeFile>, string[]) OpenFilesFromDir( string dirPath, string[] filters, bool selectAll, bool deepSearch, RegexModel selectedRegex )
+        public (List<CodeFile>, string[]) OpenFilesFromDir( string dirPath, string[] filters, bool selectAll, bool shallowSearch, RegexModel selectedRegex )
         {
-            string[] allPaths = GetFiles(dirPath, filters, selectAll, selectedRegex);
+            string[] allPaths = GetFiles(dirPath, filters, selectAll, shallowSearch, selectedRegex);
             return (OpenFiles(allPaths), allPaths);
         }
         #endregion
@@ -56,7 +68,7 @@ namespace CommentCleanerWPF.Models.FileStructures
         #region Cleaner Entry Methods
         public List<CodeFile> RunCleanerSync( string dirPath, string[] filters, bool selectAll, RegexModel selectedRegex )
         {
-            string[] allFiles = GetFiles(dirPath, filters, selectAll, selectedRegex);
+            string[] allFiles = GetFiles(dirPath, filters, selectAll, true, selectedRegex);
 
             List<CodeFile> output = new List<CodeFile>();
 
@@ -86,7 +98,7 @@ namespace CommentCleanerWPF.Models.FileStructures
 
         public async Task<List<CodeFile>> RunCleanerAsync( string dirPath, string[] filters, bool selectAll, RegexModel selectedRegex )
         {
-            string[] allFiles = GetFiles(dirPath, filters, selectAll, selectedRegex);
+            string[] allFiles = GetFiles(dirPath, filters, selectAll, true, selectedRegex);
 
             List<Task<CodeFile>> tasks = new List<Task<CodeFile>>();
 
@@ -142,13 +154,13 @@ namespace CommentCleanerWPF.Models.FileStructures
         #endregion
 
         #region File Filtering & Selection Methods
-        public string[] GetFiles( string dirPath, string[] filters, bool selectAll, RegexModel selectedRegexModel )
+        public string[] GetFiles( string dirPath, string[] filters, bool selectAll, bool shallowSearch, RegexModel selectedRegexModel )
         {
             if ( !Directory.Exists(dirPath) )
             {
                 throw new DirectoryNotFoundException();
             }
-            string[] everyFile = GetFilesDeep(dirPath);
+            string[] everyFile = shallowSearch ? GetFilesShallow(dirPath) : GetFilesDeep(dirPath);
 
             return FilterFiles(everyFile, filters, selectAll, selectedRegexModel);
         }

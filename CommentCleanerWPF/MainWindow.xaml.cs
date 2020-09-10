@@ -41,7 +41,7 @@ namespace CommentCleanerWPF
             // Change to open files and NOT run the cleaner
             OpenDirectoryButton.Click += vm.OpenDirectoryEvent;
             // Then use this to run the file.
-            RunCleanerButton.Click += vm.RunCleanerEventAsync;
+            RunCleanerButton.Click += vm.RunCleanerEventAsyncTest;
 
             //! Save Buttons
             SaveFileButton.Click += vm.SaveFileEventAsync;

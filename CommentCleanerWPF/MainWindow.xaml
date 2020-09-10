@@ -4,10 +4,10 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:CommentCleanerWPF"
+		xmlns:converter="clr-namespace:CommentCleanerWPF.Converters"
         mc:Ignorable="d"
 		x:Name="MainRoot"
 		WindowState="Maximized"
-		Icon="{StaticResource CSIcon_50}"
         Title="Comment Cleaner" Height="850" Width="1000">
 	<Window.Resources>
 		<ResourceDictionary>
@@ -30,6 +30,9 @@
 					</Style>
 				</ResourceDictionary>
 				<ResourceDictionary Source="Resources/IconDict.xaml"/>
+				<ResourceDictionary>
+					<converter:BoolToVisibleConverter x:Key="boolToVisible"/>
+				</ResourceDictionary>
 			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
 	</Window.Resources>
@@ -50,6 +53,7 @@
 		>
 			<Grid>
 				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
@@ -104,9 +108,19 @@
 					</Grid>
 				</Border>
 
+				<CheckBox
+					Grid.Row="1"
+					IsChecked="{
+						Binding Path=IsShallow,
+						UpdateSourceTrigger=PropertyChanged
+					}"
+				>
+					Shallow Search
+				</CheckBox>
+
 				<Button
 					x:Name="OpenDirectoryButton"
-					Grid.Row="1"
+					Grid.Row="2"
 					Background="{StaticResource base-color-comp}"
 					Foreground="White"
 				>
@@ -115,7 +129,7 @@
 
 				<Button
 					x:Name="SelectFilesManuallyButton"
-					Grid.Row="2"
+					Grid.Row="3"
 					Background="{StaticResource base-color-comp-2}"
 				>
 					Select Files
@@ -123,7 +137,7 @@
 
 				<ComboBox
 					Name="FileTypeCombo"
-					Grid.Row="3"
+					Grid.Row="4"
 					ItemsSource="{Binding Path=FileTypes}"
 					SelectedItem="{
 						Binding Path=SelectedFileType,
@@ -149,12 +163,12 @@
 
 				<CheckBox
 					IsChecked="{Binding Path=SelectAll, UpdateSourceTrigger=PropertyChanged}"
-					Grid.Row="4"
+					Grid.Row="5"
 				>
 					Select All File Types
 				</CheckBox>
 
-				<Border Grid.Row="5">
+				<Border Grid.Row="6">
 					<StackPanel>
 						<TextBlock>Exluded File Filters</TextBlock>
 						<ListView
@@ -190,14 +204,14 @@
 				</Border>
 
 				<Button
-					Grid.Row="7"
+					Grid.Row="8"
 					x:Name="SaveFileButton"
 					Background="{StaticResource base-color-analog-L}"
 				>
 					Save
 				</Button>
 				<Button
-					Grid.Row="8"
+					Grid.Row="9"
 					x:Name="SaveAllFilesButton"
 					Background="{StaticResource base-color-analog-L}"
 				>
@@ -213,25 +227,42 @@
 			CornerRadius="4"
 			Margin="1"
 		>
-			<StackPanel Orientation="Vertical">
+			<Grid>
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="*"/>
+				</Grid.RowDefinitions>
 				<TextBlock HorizontalAlignment="Center">
 					Open Files
 				</TextBlock>
 				<ListView
+					Grid.Row="1"
 					MinWidth="80"
 					ItemsSource="{Binding Path=AllCodeFiles}"
 					SelectedItem="{Binding Path=SelectedCodeFile}"
 				>
 					<ListView.ItemTemplate>
 						<DataTemplate>
-							<StackPanel Orientation="Horizontal">
-								<Image Width="25" Height="25" Source="{StaticResource FileIcon_25}"/>
+							<Grid>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="*"/>
+									<ColumnDefinition Width="Auto"/>
+								</Grid.ColumnDefinitions>
 								<TextBlock Text="{Binding Path=FileName}"/>
-							</StackPanel>
+								<Rectangle
+									Grid.Column="1"
+									Width="6"
+									Height="6"
+									Fill="{StaticResource base-color-comp}"
+									Visibility="{
+									Binding Path=ErrorOut,
+									Converter={StaticResource boolToVisible}}"
+								/>
+							</Grid>
 						</DataTemplate>
 					</ListView.ItemTemplate>
 				</ListView>
-			</StackPanel>
+			</Grid>
 		</Border>
 
 		<Border
