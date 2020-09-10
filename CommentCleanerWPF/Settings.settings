@@ -11,5 +11,8 @@
     <Setting Name="FileTypes" Type="System.String" Scope="User">
       <Value Profile="(Default)">Name=C#,Extension=.cs~Name=XAML,Extension=.xaml~Name=All,Extension=null</Value>
     </Setting>
+    <Setting Name="RegexFilePath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\Users\Cody\Desktop\CodeCleanerRegex.json</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

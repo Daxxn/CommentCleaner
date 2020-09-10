@@ -1,11 +1,14 @@
-﻿using System;
+﻿using CommentCleanerWPF.Models.RegexModels;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows.Media;
 
 namespace CommentCleanerWPF.Models.FileStructures
 {
@@ -28,37 +31,135 @@ namespace CommentCleanerWPF.Models.FileStructures
         #endregion
 
         #region - Methods
-        public List<CodeFile> RunCleaner( string dirPath, string[] filters )
+        public List<CodeFile> RunCleanerSync( string dirPath, string[] filters, bool selectAll, RegexModel selectedRegex )
+        {
+            string[] allFiles = GetFiles(dirPath, filters, selectAll, selectedRegex);
+
+            List<CodeFile> output = new List<CodeFile>();
+
+            foreach ( var file in allFiles )
+            {
+                CodeFile codeFile = new CodeFile();
+                try
+                {
+                    codeFile.FullPath = file;
+                    codeFile.FileName = Path.GetFileName(file);
+                    using ( StreamReader reader = new StreamReader(file) )
+                    {
+                        string fileData = reader.ReadToEnd();
+                        codeFile.UnchangedCode = fileData;
+                        codeFile.CleanedCode = RunCleanerRegex(fileData, Path.GetExtension(file));
+                    }
+                }
+                catch ( Exception e )
+                {
+                    codeFile.Error = e;
+                }
+                output.Add(codeFile);
+            }
+
+            return output;
+        }
+
+        public async Task<List<CodeFile>> RunCleanerAsync( string dirPath, string[] filters, bool selectAll, RegexModel selectedRegex )
+        {
+            string[] allFiles = GetFiles(dirPath, filters, selectAll, selectedRegex);
+
+            List<Task<CodeFile>> tasks = new List<Task<CodeFile>>();
+
+            foreach ( var file in allFiles )
+            {
+                tasks.Add(Task.Run(( ) =>
+                {
+                    CodeFile codeFile = new CodeFile();
+                    try
+                    {
+                        codeFile.FullPath = file;
+                        codeFile.FileName = Path.GetFileName(file);
+                        using ( StreamReader reader = new StreamReader(file) )
+                        {
+                            string fileData = reader.ReadToEnd();
+                            codeFile.UnchangedCode = fileData;
+                            codeFile.CleanedCode = RunCleanerRegex(fileData, Path.GetExtension(file));
+                        }
+                    }
+                    catch ( Exception e )
+                    {
+                        codeFile.Error = e;
+                    }
+                    return codeFile;
+                }));
+            }
+
+            var results = await Task.WhenAll(tasks);
+            return results.ToList();
+        }
+
+        public string[] GetFiles( string dirPath, string[] filters, bool selectAll, RegexModel selectedRegexModel )
         {
             if ( !Directory.Exists(dirPath) )
             {
                 throw new DirectoryNotFoundException();
             }
-            List<CodeFile> output = new List<CodeFile>();
-            string[] everyFile = GetAllFiles(dirPath);
+            string[] everyFile = GetFilesDeep(dirPath);
 
-            List<string> allFiles = new List<string>(everyFile.Where(p =>
-            {
-                string ext = Path.GetExtension(p);
-                return ext == ".cs" || ext == ".xaml";
-            }));
-            List<string> filteredFiles = CustomFilter(filters, allFiles);
-
-            return output;
+            return FilterFiles(everyFile, filters, selectAll, selectedRegexModel);
         }
 
-        private string[] GetAllFiles( string path )
+        private string[] GetFilesDeep( string path )
         {
             string[] paths = Directory.GetDirectories(path);
             List<string> files = new List<string>(Directory.GetFiles(path));
             foreach ( var p in paths )
             {
-                files.AddRange(GetAllFiles(p));
+                files.AddRange(GetFilesDeep(p));
             }
             return files.ToArray();
         }
 
-        public List<string> CustomFilter( string[] filters, List<string> allFiles )
+        private string[] GetFilesShallow( string dirPath )
+        {
+            return Directory.GetFiles(dirPath);
+        }
+
+        private string[] FilterFiles( string[] allFiles, string[] filters, bool selectAll, RegexModel selectedRegex )
+        {
+            List<string> selectedFiles = new List<string>();
+
+            if ( !selectAll )
+            {
+                foreach ( var file in allFiles )
+                {
+                    if ( Path.GetExtension(file) == selectedRegex.Extension  )
+                    {
+                        selectedFiles.Add(file);
+                    }
+                }
+            }
+            else
+            {
+                selectedFiles = GetAllFilesWithExtensions(allFiles);
+            }
+            return CustomFilter(selectedFiles, filters).ToArray();
+        }
+
+        private List<string> GetAllFilesWithExtensions( IEnumerable<string> everyFile )
+        {
+            string[] allExtensions = RegexModel.AllRegexModels.Select(reg => reg.Extension).ToArray();
+
+            List<string> output = new List<string>();
+
+            foreach ( var file in everyFile )
+            {
+                if ( allExtensions.Contains(Path.GetExtension(file)) )
+                {
+                    output.Add(file);
+                }
+            }
+            return output;
+        }
+
+        private List<string> CustomFilter( IEnumerable<string> allFiles, string[] filters )
         {
             List<string> newList = new List<string>();
             foreach ( var file in allFiles )
@@ -80,195 +181,19 @@ namespace CommentCleanerWPF.Models.FileStructures
         }
 
         /// <summary>
-        /// VERY OLD - Doesnt work, will never work.
+        /// VERY Temporary. Need to rework the Regex model.
         /// </summary>
-        /// <param name="file"></param>
-        /// <param name="lineTerm"></param>
+        /// <param name="data"></param>
         /// <returns></returns>
-        //public CodeFile RunCleaner( StreamReader file, string lineTerm )
-        //{
-        //    CodeFile output = new CodeFile();
-        //    string completeFile = file.ReadToEnd();
-        //    StringBuilder allLines = new StringBuilder();
-        //    string[] lines = completeFile.Split(new string[] { LineTerminators[lineTerm] }, StringSplitOptions.RemoveEmptyEntries);
-        //    foreach ( var line in lines )
-        //    {
-        //        if ( line.StartsWith("//!") )
-        //        {
-        //            continue;
-        //        }
-        //        if ( !line.StartsWith("//") )
-        //        {
-        //            allLines.Append(line);
-        //        }
-        //    }
-        //    output.UnchangedCode = completeFile;
-        //    output.CleanedCode = allLines.ToString();
-
-        //    return output;
-        //}
-
-        /// <summary>
-        /// VERY OLD - Doesnt work, will never work, Async
-        /// </summary>
-        /// <param name="file"></param>
-        /// <param name="lineTerm"></param>
-        /// <returns></returns>
-        //public async Task<CodeFile> RunCleanerAsync( StreamReader file, string lineTerm )
-        //{
-        //    CodeFile output = new CodeFile();
-        //    List<string> lines = await ReadLinesAsync(file);
-        //    StringBuilder changedOutput = new StringBuilder();
-        //    StringBuilder unchangedOutput = new StringBuilder();
-        //    await Task.Run(( ) =>
-        //    {
-        //        foreach ( var line in lines )
-        //        {
-        //            if ( !line.Contains("//") || line.Contains("//!") )
-        //            {
-        //                changedOutput.Append(line);
-        //                changedOutput.Append("\n");
-        //            }
-        //            unchangedOutput.Append(line);
-        //            unchangedOutput.Append("\n");
-        //        }
-
-        //        output.UnchangedCode = unchangedOutput.ToString();
-        //        output.CleanedCode = changedOutput.ToString();
-
-        //        CleanMultilineComments(changedOutput.ToString());
-        //    });
-
-        //    return output;
-        //}
-
-        public CodeFile RunCleanerRegex( StreamReader file )
+        private string RunCleanerRegex( string data, string ext )
         {
-            CodeFile output = new CodeFile();
-            string fileData = file.ReadToEnd();
-            output.UnchangedCode = fileData;
-            var basicOut = BasicCommentRegexCS.Replace(fileData, "");
-            var multiOut = MultilineCommentRegexCS.Replace(basicOut, "");
-            output.CleanedCode = multiOut;
-            return output;
-        }
-
-        public async Task<CodeFile> RunCleanerRegexAsync( StreamReader file )
-        {
-            CodeFile output = new CodeFile();
-            string fileData = await file.ReadToEndAsync();
-            output.UnchangedCode = fileData;
-            await Task.Run(( ) =>
+            var regex = RegexModel.AllRegexModels.First(reg => reg.Extension == ext);
+            string output = data;
+            foreach ( var r in regex.RegexCollection )
             {
-                string regOut = BasicCommentRegexCS.Replace(fileData, "");
-                output.CleanedCode = MultilineCommentRegexCS.Replace(regOut, "");
-            });
-            return output;
-        }
-
-        /// <summary>
-        /// OLD - Would async read each line of the file. 
-        /// </summary>
-        /// <param name="file"></param>
-        /// <returns></returns>
-        private async Task<List<string>> ReadLinesAsync( StreamReader file )
-        {
-            List<string> output = new List<string>();
-            await Task.Run(( ) =>
-            {
-                while ( !file.EndOfStream )
-                {
-                    output.Add(file.ReadLine());
-                }
-            });
-            return output;
-        }
-
-        /// <summary>
-        /// OLD - Used the stringSplit method. Its really hard to use that for multi-line comments.
-        /// </summary>
-        /// <param name="lines"></param>
-        /// <returns></returns>
-        //private string CleanMultilineComments( string lines )
-        //{
-        //    StringBuilder builder = new StringBuilder();
-        //    string[] output = lines.Split(new string[] { StartComment, EndComment }, StringSplitOptions.RemoveEmptyEntries);
-        //    if ( output.Length == 1 )
-        //    {
-        //        return lines;
-        //    }
-        //    else if ( output.Length > 1 && output.Length < 3 )
-        //    {
-        //        // Not sure what to do here yet.
-        //        return lines;
-        //    }
-        //    if ( output.Length == 3 )
-        //    {
-        //        builder.Append(output[ 0 ]);
-        //        builder.Append(output[ 2 ]);
-        //        return builder.ToString();
-        //    }
-        //    else if ( output.Length > 3 )
-        //    {
-        //        var newOutput = CleanEmptyStrings(output);
-        //        for ( int i = 0; i < newOutput.Length; i++ )
-        //        {
-        //            if ( i % 2 == 0 )
-        //            {
-        //                builder.Append(newOutput[ i ]);
-        //            }
-        //        }
-        //        return builder.ToString();
-        //    } 
-        //    else
-        //    {
-        //        throw new Exception("Unknown Multiline Comments Parse Error");
-        //    }
-        //}
-
-        /// <summary>
-        /// OLD - Removes empty lines from the file. Still might be necessary.
-        /// </summary>
-        /// <param name="strings"></param>
-        /// <returns></returns>
-        private string[] CleanEmptyStrings( string[] strings )
-        {
-            List<string> output = new List<string>();
-            Regex reg = new Regex(@"[\w\d]", RegexOptions.Multiline);
-            foreach ( var str in strings )
-            {
-                if ( reg.Match(str).Success )
-                {
-                    output.Add(str);
-                }
+                output = r.Regex.Replace(output, "");
             }
-            return output.ToArray();
-        }
-
-        public static void OnStartup( )
-        {
-            CommentRegex = new Dictionary<string, Regex>();
-            var settingBase = RegexSettings.Synchronized(RegexSettings.Default);
-            var props = settingBase.Properties.SyncRoot;
-            var propCollection = props as SettingsPropertyCollection;
-            foreach ( var prop in propCollection )
-            {
-                var p = prop as SettingsProperty;
-                CommentRegex.Add(p.Name, ParseRegex(( string )p.DefaultValue));
-            }
-        }
-
-        private static Regex ParseRegex( string settingValue )
-        {
-            string[] expressionSplt = settingValue.Split(new char[] { '~' }, StringSplitOptions.RemoveEmptyEntries);
-
-            RegexOptions options = RegexOptions.None;
-            if ( expressionSplt.Length == 2 )
-            {
-                options = ( RegexOptions )Enum.Parse(typeof(RegexOptions), expressionSplt[ 1 ]);
-            }
-
-            return new Regex(expressionSplt[0], options);
+            return output;
         }
         #endregion
 

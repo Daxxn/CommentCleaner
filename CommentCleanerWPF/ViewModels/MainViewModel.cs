@@ -1,5 +1,8 @@
-﻿using CommentCleanerWPF.Models;
+﻿using CommentCleanerWPF.Exceptions;
+using CommentCleanerWPF.Models;
 using CommentCleanerWPF.Models.FileStructures;
+using CommentCleanerWPF.Models.RegexModels;
+
 using Microsoft.Win32;
 
 using System;
@@ -8,6 +11,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -24,10 +28,11 @@ namespace CommentCleanerWPF.ViewModels
         private ObservableCollection<FilterItem> _fileFilters = new ObservableCollection<FilterItem>();
         private string _newFileFilter;
 
-        //private ObservableCollection<FileModel> _fileTypes;
-        private ObservableCollection<FileType> _fileTypes;
-        //private FileModel _selectedFIleType;
-        private FileType _selectedFIleType;
+        private ObservableCollection<RegexModel> _fileTypes;
+
+        private RegexModel _selectedFIleType;
+
+        private bool _selectAll;
 
         private CodeFile _selectedCodeFile;
         private ObservableCollection<CodeFile> _allCodeFiles;
@@ -38,26 +43,7 @@ namespace CommentCleanerWPF.ViewModels
         {
             FileModel = FileModel.Instance;
             DirPath = @"C:\Users\Cody\source\repos\CommentTestApp\CommentTestApp";
-            //FileTypes = new ObservableCollection<FileModel>
-            //{
-            //    new FileModel
-            //    {
-            //        Name="CSharp",
-            //        Extension=".cs",
-            //    },
-            //    new FileModel
-            //    {
-            //        Name="XAML",
-            //        Extension=".xaml",
-            //    },
-            //    new FileModel
-            //    {
-            //        Name="All",
-            //        Extension=null,
-            //        IsAll = true,
-            //    }
-            //};
-            FileTypes = new ObservableCollection<FileType>(FileType.Types);
+            FileTypes = new ObservableCollection<RegexModel>(RegexModel.AllRegexModels);
             SelectedFileType = FileTypes[ 0 ];
         }
         #endregion
@@ -107,12 +93,7 @@ namespace CommentCleanerWPF.ViewModels
                 {
                     throw new Exception("No file selected.");
                 }
-                AllCodeFiles = new ObservableCollection<CodeFile>(FileModel.RunCleaner(DirPath, FilterItem.ToStringArray(FileFilters)));
-                //AllCodeFiles = new ObservableCollection<CodeFile>( SelectedFileType.RunCleaner(DirPath, FilterItem.ToStringArray(FileFilters)));
-                //using ( StreamReader reader = new StreamReader(FilePath) )
-                //{
-                //    //Code = await SelectedFileType.RunCleanerRegexAsync(reader);
-                //}
+                AllCodeFiles = new ObservableCollection<CodeFile>(await FileModel.RunCleanerAsync(DirPath, FilterItem.ToStringArray(FileFilters), SelectAll, SelectedFileType));
             }
             catch ( Exception exe )
             {
@@ -133,6 +114,109 @@ namespace CommentCleanerWPF.ViewModels
             catch ( Exception exe )
             {
                 MessageBox.Show(exe.Message, "Error");
+            }
+        }
+
+        /// <summary>
+        /// Might not work as intended. Possible problem with Parallel Getting out of sync with the output List
+        /// </summary>
+        public async void SaveAllFilesEventAsync( object sender, EventArgs e )
+        {
+            try
+            {
+                List<Exception> allExceptions = new List<Exception>();
+                await Task.Run(( ) =>
+                {
+                    Parallel.ForEach(AllCodeFiles, ( codeFile ) =>
+                    {
+                        try
+                        {
+                            using ( StreamWriter writer = new StreamWriter(codeFile.FullPath) )
+                            {
+                                writer.Write(codeFile.CleanedCode);
+                                writer.Flush();
+                            }
+                        }
+                        catch ( Exception innerExe )
+                        {
+                            var newInnerExe = new Exception($"-- {innerExe.GetType().Name} : {innerExe.Message}\n\t{codeFile.FileName} : {codeFile.FullPath}");
+                            allExceptions.Add(innerExe);
+                        }
+                    });
+                });
+
+                if ( allExceptions.Count > 0 )
+                {
+                    throw new MultiException(allExceptions);
+                }
+            }
+            catch ( MultiException exe )
+            {
+                StringBuilder builder = new StringBuilder("There were some Errors:");
+                builder.AppendLine($"\nCount: {exe.Exceptions.Count()}\n");
+
+                foreach ( var exeption in exe.Exceptions )
+                {
+                    builder.AppendLine(exeption.Message);
+                }
+
+                MessageBox.Show(builder.ToString(), "Multiple Exceptions");
+            }
+            catch ( Exception exe )
+            {
+                MessageBox.Show($"Unknown save error: {exe.Message}", "Error");
+            }
+        }
+
+        public async void SaveAllFilesAsyncBackup( object sender, EventArgs eve )
+        {
+            try
+            {
+                List<Exception> allExceptions = new List<Exception>();
+                List<Task> tasks = new List<Task>();
+
+                foreach ( var codeFile in AllCodeFiles )
+                {
+                    tasks.Add(Task.Run(( ) =>
+                    {
+                        try
+                        {
+                            using ( StreamWriter writer = new StreamWriter(codeFile.FullPath) )
+                            {
+                                writer.Write(codeFile.CleanedCode);
+                                writer.Flush();
+                            }
+                        }
+                        catch ( Exception innerExe )
+                        {
+                            var newInnerExe = new Exception($"-- {innerExe.GetType().Name} : {innerExe.Message}\n\t{codeFile.FileName} : {codeFile.FullPath}");
+                            allExceptions.Add(innerExe);
+                        }
+                    }));
+                }
+
+                await Task.WhenAll(tasks);
+
+                if ( allExceptions.Count > 0 )
+                {
+                    throw new MultiException(allExceptions);
+                }
+            }
+            catch ( MultiException exe )
+            {
+                StringBuilder builder = new StringBuilder("There were some Errors:");
+                builder.AppendLine($"\nCount: {exe.Exceptions.Count()}\n");
+
+                foreach ( var exeption in exe.Exceptions )
+                {
+                    builder.AppendLine(exeption.Message);
+                }
+
+                MessageBox.Show(builder.ToString(), "Multiple Exceptions");
+            }
+            catch ( Exception exe )
+            {
+                MessageBox.Show($"Unknown save error: {exe.Message}", "Error");
             }
         }
 
@@ -236,8 +320,7 @@ namespace CommentCleanerWPF.ViewModels
             }
         }
 
-        //public ObservableCollection<FileModel> FileTypes
-        public ObservableCollection<FileType> FileTypes
+        public ObservableCollection<RegexModel> FileTypes
         {
             get { return _fileTypes; }
             set
@@ -247,14 +330,23 @@ namespace CommentCleanerWPF.ViewModels
             }
         }
 
-        //public FileModel SelectedFileType
-        public FileType SelectedFileType
+        public RegexModel SelectedFileType
         {
             get { return _selectedFIleType; }
             set
             {
                 _selectedFIleType = value;
                 NotifyOfPropertyChange(nameof(SelectedFileType));
+            }
+        }
+
+        public bool SelectAll
+        {
+            get { return _selectAll; }
+            set
+            {
+                _selectAll = value;
+                NotifyOfPropertyChange(nameof(SelectAll));
             }
         }
 

@@ -11,6 +11,7 @@ namespace CommentCleanerWPF.Models
         public string FullPath { get; set; }
         public string UnchangedCode { get; set; }
         public string CleanedCode { get; set; }
+        public Exception Error { get; set; }
         #endregion
 
         #region - Constructors

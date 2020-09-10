@@ -1,4 +1,5 @@
 ﻿using CommentCleanerWPF.Models.FileStructures;
+using CommentCleanerWPF.Models.RegexModels;
 using CommentCleanerWPF.ViewModels;
 
 using System;
@@ -18,7 +19,8 @@ namespace CommentCleanerWPF
     {
         protected override void OnStartup( StartupEventArgs e )
         {
-            FileModel.OnStartup();
+            RegexModel.OnStartup();
+            //FileModel.OnStartup();
             FileType.OnStartup();
             var window = new MainWindow(new MainViewModel());
             window.Show();

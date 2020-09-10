@@ -58,5 +58,17 @@ namespace CommentCleanerWPF {
                 this["FileTypes"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("C:\\Users\\Cody\\Desktop\\CodeCleanerRegex.json")]
+        public string RegexFilePath {
+            get {
+                return ((string)(this["RegexFilePath"]));
+            }
+            set {
+                this["RegexFilePath"] = value;
+            }
+        }
     }
 }

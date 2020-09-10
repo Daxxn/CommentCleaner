@@ -4,6 +4,9 @@ using System.Text;
 
 namespace CommentCleanerWPF.Models.FileStructures
 {
+    /// <summary>
+    /// Depreciated
+    /// </summary>
     public class FileType
     {
         #region - Fields & Properties

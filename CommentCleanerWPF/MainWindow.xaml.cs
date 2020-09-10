@@ -35,6 +35,7 @@ namespace CommentCleanerWPF
             OpenFileButton.Click += vm.OpenFileEvent;
             RunCleanerButton.Click += vm.RunCleanerEventAsync;
             SaveFileButton.Click += vm.SaveFileEventAsync;
+            SaveAllFilesButton.Click += vm.SaveAllFilesEventAsync;
             AddNewFileFilterButton.Click += vm.AddNewFileFilterEvent;
             FileFilterList.SelectionChanged += vm.DeleteFileFilterEvent;
         }
