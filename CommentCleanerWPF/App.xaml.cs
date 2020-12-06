@@ -20,10 +20,13 @@ namespace CommentCleanerWPF
         protected override void OnStartup( StartupEventArgs e )
         {
             RegexModel.OnStartup();
-            //FileModel.OnStartup();
             FileType.OnStartup();
             var window = new MainWindow(new MainViewModel());
             window.Show();
+
+            //Testing
+            var folderWindow = new FolderDialogView(new FolderDialogViewModel());
+            folderWindow.Show();
         }
     }
 }
